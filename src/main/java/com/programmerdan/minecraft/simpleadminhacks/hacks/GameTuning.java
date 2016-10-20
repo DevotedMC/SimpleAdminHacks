@@ -1,8 +1,12 @@
 package com.programmerdan.minecraft.simpleadminhacks.hacks;
 
+import java.util.logging.Level;
+import java.util.List;
+
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
@@ -19,6 +23,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import com.programmerdan.minecraft.simpleadminhacks.SimpleAdminHacks;
 import com.programmerdan.minecraft.simpleadminhacks.SimpleHack;
 import com.programmerdan.minecraft.simpleadminhacks.configs.GameTuningConfig;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 /**
  * This is a grab-bag class to hold any _tuning_ related configurations that impact the 
@@ -104,39 +109,79 @@ public class GameTuning extends SimpleHack<GameTuningConfig> implements Listener
 	 */
 	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled=true)
 	public void chunkLimits(BlockPlaceEvent event) {
-		if (!config.isEnabled()) return;
+		try {
+			if (!config.isEnabled()) return;
 
-		Player player = event.getPlayer();
-		if (player == null) return;
+			Player player = event.getPlayer();
+			if (player == null) return;
 
-		Block block = event.getBlock();
-		if (block == null) return;
+			Block block = event.getBlock();
+			if (block == null) return;
 
-		if (!config.applyChunkLimits(player.getUniqueId())) return;
+			if (!config.applyChunkLimits(player.getUniqueId())) return;
 
-		Material mat = block.getType();
-		if (mat == null) return;
+			Material mat = block.getType();
+			if (mat == null) return;
 
-		Integer limit = config.getChunkLimit(mat);
-		if (limit == null) return;
+			Integer limit = config.getChunkLimit(mat);
+			if (limit == null) return;
 
-		int current = 0;
-		for (BlockState state : block.getChunk().getTileEntities() ) {
-			if (mat.equals(state.getType())) {
-				if ( ++current > limit) {
+			if (block.getChunk().getTileEntities() == null) return;
+
+			int current = 0;
+			for (BlockState state : block.getChunk().getTileEntities() ) {
+				if (state != null && mat.equals(state.getType())) {
+					if ( ++current > limit) {
+						event.setCancelled(true);
+						player.sendMessage( config.getChunkLimitsExceededMessage() );
+						return;
+					}
+				}
+			}
+		} catch (Exception e) {
+			plugin().log(Level.WARNING, "Failed to measure chunk limit", e);	
+		}
+	}
+
+	// If any limit at all, cancel the piston event.
+	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled=true) 
+	public void chunkLimitsExploitExtend(BlockPistonExtendEvent event) {
+		List<Block> blocks = event.getBlocks();
+		if (blocks != null && blocks.size() > 0) {
+			for (Block b : blocks) {
+				if (b != null && b.getType() != null && config.getChunkLimit(b.getType()) != null) {
 					event.setCancelled(true);
-					player.sendMessage( config.getChunkLimitsExceededMessage() );
-					return;
+					return; // TODO send message to nearby player warning of reason for stopping.
 				}
 			}
 		}
 	}
 
-	// TODO
-	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled=true) 
-	public void chunkLimitsExploitExtend(BlockPistonExtendEvent event) {}
-
-	// TODO
+	// Yes, this is identical ...
 	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled=true)
-	public void chunkLimitsExploitRetract(BlockPistonRetractEvent event) {}
+	public void chunkLimitsExploitRetract(BlockPistonRetractEvent event) {
+		List<Block> blocks = event.getBlocks();
+		if (blocks != null && blocks.size() > 0) {
+			for (Block b : blocks) {
+				if (b != null && b.getType() != null && config.getChunkLimit(b.getType()) != null) {
+					event.setCancelled(true);
+					return; // TODO send message to nearby player warning of reason for stopping.
+				}
+			}
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+	public void bedRClickToSetSpawn(PlayerInteractEvent event) {
+		if (!config.areDaytimeBedsEnabled() || event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock().getType() != Material.BED_BLOCK) {
+			return;
+		}
+
+		if (event.getPlayer() == null) return;
+		if (event.getClickedBlock() == null) return;
+
+		event.getPlayer().setBedSpawnLocation(event.getClickedBlock().getLocation());
+		event.getPlayer().sendTitle("", config.getDaytimeBedSpawnSetMessage());
+	}
 }
