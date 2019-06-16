@@ -65,9 +65,9 @@ Similar to Game Fixes, but distinct in that the intent here is on hacks that _tu
 or alter existing mechanics without fully disabling them or without fixing them. 
 Things like altering armor damage reduction or tool impact would be good fits.
 
-### HackBot
+### ~~HackBot (Removed in 1.2.4)
 
-An experimental module whose complexity is approaching divorce from SAH, this is
+~~An experimental module whose complexity is approaching divorce from SAH, this is
 a bit of mid-work code that allows operators to define static Bots that show up
 like "real" players but aren't.
 
