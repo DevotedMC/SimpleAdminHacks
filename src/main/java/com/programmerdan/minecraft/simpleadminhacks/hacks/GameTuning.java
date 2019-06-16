@@ -1,46 +1,55 @@
 package com.programmerdan.minecraft.simpleadminhacks.hacks;
 
-import java.util.logging.Level;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Skeleton;
+import org.bukkit.entity.SkeletonHorse;
+import org.bukkit.entity.WitherSkeleton;
 import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.entity.minecart.StorageMinecart;
-import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
-
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerBedEnterEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-
-import org.bukkit.entity.Player;
-import org.bukkit.Material;
-import org.bukkit.Bukkit;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Block;
-
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-
-import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.event.world.PortalCreateEvent;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 
 import com.programmerdan.minecraft.simpleadminhacks.SimpleAdminHacks;
 import com.programmerdan.minecraft.simpleadminhacks.SimpleHack;
 import com.programmerdan.minecraft.simpleadminhacks.configs.GameTuningConfig;
+import com.programmerdan.minecraft.simpleadminhacks.util.TeleportUtil;
 
-import org.bukkit.event.world.PortalCreateEvent;
-import org.bukkit.inventory.InventoryHolder;
+import net.md_5.bungee.api.ChatColor;
 
 /**
  * This is a grab-bag class to hold any _tuning_ related configurations that impact the
@@ -58,6 +67,8 @@ import org.bukkit.inventory.InventoryHolder;
  */
 public class GameTuning extends SimpleHack<GameTuningConfig> implements Listener {
 	public static final String NAME = "GameTuning";
+
+	private Random rng = new Random();
 
 	public GameTuning(SimpleAdminHacks plugin, GameTuningConfig config) {
 		super(plugin, config);
@@ -116,7 +127,12 @@ public class GameTuning extends SimpleHack<GameTuningConfig> implements Listener
 			} else {
 				genStatus.append("disabled\n");
 			}
-
+			genStatus.append("  Stop trap horses is ");
+			if (config.stopTrapHorses()) {
+				genStatus.append("enabled\n");
+			} else {
+				genStatus.append("disabled\n");
+			}
 			// more?
 		} else {
 			genStatus.append("inactive");
@@ -236,10 +252,14 @@ public class GameTuning extends SimpleHack<GameTuningConfig> implements Listener
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onPlayerPortalTravel(PlayerPortalEvent event) {
-		if (config.isEnabled() && config.isOneToOneNether() && event.getCause() == PlayerTeleportEvent.TeleportCause.NETHER_PORTAL) {
-			Location newLoc = event.getFrom();
-			newLoc.setWorld(event.getTo().getWorld());
-			event.setTo(newLoc);
+		if(config.isEnabled() && event.getCause() == PlayerTeleportEvent.TeleportCause.NETHER_PORTAL) {
+			if(!config.allowNetherTravel()) {
+				event.setCancelled(true);
+			} else if (config.isOneToOneNether()) {
+				Location newLoc = event.getFrom();
+				newLoc.setWorld(event.getTo().getWorld());
+				event.setTo(newLoc);
+			}
 		}
 	}
 
@@ -285,4 +305,61 @@ public class GameTuning extends SimpleHack<GameTuningConfig> implements Listener
 		}
 	}
 
+	@EventHandler
+	public void onEntityTarget(EntityTargetEvent event) {
+		if(config.isEnabled() && config.stopTrapHorses()) {
+			Entity entity = event.getEntity();
+			if(entity instanceof Skeleton && entity.isInsideVehicle() && entity.getVehicle() instanceof SkeletonHorse) {
+				if(config.killTrapHorses()) {
+					entity.getVehicle().remove();
+				}
+				entity.remove();
+			}
+		}
+	}
+
+	@EventHandler
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		if(config.isEnabled() && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+			boolean cancel = !config.isEnderChestInventories() && event.getClickedBlock().getType() == Material.ENDER_CHEST;
+			cancel = cancel || (!config.canChangeSpawnerType() && event.getClickedBlock().getType() == Material.MOB_SPAWNER
+					&& event.getItem() != null && event.getItem().getType() == Material.MONSTER_EGG);
+			event.setCancelled(cancel);
+		}
+	}
+
+	@EventHandler
+	public void onBlockPlace(BlockPlaceEvent event) {
+		if(config.isEnabled() && !config.canPlace(event.getBlock().getType())) {
+			event.setCancelled(true);
+			event.getPlayer().sendMessage(ChatColor.RED + "You're not allowed to place that!");
+		}
+	}
+
+	@EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+	public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+		if(config.isEnabled() && !config.allowVillagerTrading()) {
+			Entity npc = event.getRightClicked();
+			if(npc != null && npc.getType() == EntityType.VILLAGER) {
+				event.setCancelled(true);
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+	public void onEntityChangeBLock(EntityChangeBlockEvent event) {
+		if(config.isEnabled() &&
+				(!config.isEnderGrief() && event.getEntityType() == EntityType.ENDERMAN) ||
+				(!config.isWitherGrief() && event.getEntityType() == EntityType.WITHER)) {
+			event.setCancelled(true);
+		}
+	}
+
+	@EventHandler
+	public void onPlayerMove(PlayerMoveEvent event) {
+		if(config.isEnabled() && config.isPreventFallingThroughBedrock() && event.getTo().getY() < 1
+				&& event.getPlayer().getGameMode() == GameMode.SURVIVAL) {
+			TeleportUtil.tryToTeleportVertically(event.getPlayer(), event.getTo(), "falling into the void");
+		}
+	}
 }

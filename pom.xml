@@ -6,7 +6,7 @@
   <groupId>com.programmerdan.minecraft</groupId>
   <artifactId>SimpleAdminHacks</artifactId>
   <packaging>jar</packaging>
-  <version>1.2.2</version>
+  <version>1.2.4</version>
   <name>SimpleAdminHacks</name>
   <url>https://github.com/DevotedMC/SimpleAdminHacks</url>
 
@@ -90,8 +90,8 @@
       <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
     </repository>
     <repository>
-      <id>inventive-repo</id>
-      <url>http://repo.inventivetalent.org/content/groups/public/</url>
+      <id>byteflux-repo</id>
+      <url>http://repo.byteflux.net/repository/maven-snapshots/</url>
     </repository>
     <repository>
       <id>dmulloy2-repo</id>
@@ -107,13 +107,13 @@
     <dependency>
       <groupId>org.spigotmc</groupId>
       <artifactId>spigot</artifactId>
-      <version>1.12-R0.1-SNAPSHOT</version>
+      <version>1.12.2-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>net.minelink</groupId>
       <artifactId>CombatTagPlus</artifactId>
-      <version>1.3.1-SNAPSHOT</version>
+      <version>1.3.2-SNAPSHOT</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -121,11 +121,6 @@
           <artifactId>metrics-lite</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.inventivetalent.npclib</groupId>
-      <artifactId>api</artifactId>
-      <version>1.8.6</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -142,7 +137,7 @@
     <dependency>
       <groupId>com.comphenix.protocol</groupId>
       <artifactId>ProtocolLib-API</artifactId>
-      <version>4.3.0-SNAPSHOT</version>
+      <version>4.3.0</version>
     </dependency>
     <dependency>
       <groupId>vg.civcraft.mc.namelayer</groupId>
@@ -160,15 +155,6 @@
       <groupId>vg.civcraft.mc.civmodcore</groupId>
       <artifactId>CivModCore</artifactId>
       <version>1.6.0</version>
-      <scope>provided</scope>
-    </dependency>
-<!--  Note: CrazyCrates isn't distributed in POM form.
-  For this to build successfully, use install:install-file with
-  attributes as below. -->
-    <dependency>
-      <groupId>me.badbones69</groupId>
-      <artifactId>CrazyCrates</artifactId>
-      <version>1.7.1.5</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

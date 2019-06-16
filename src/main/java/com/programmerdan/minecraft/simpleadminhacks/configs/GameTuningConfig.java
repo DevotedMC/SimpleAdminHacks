@@ -1,18 +1,18 @@
 package com.programmerdan.minecraft.simpleadminhacks.configs;
 
-import java.util.Map;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.HashSet;
-import java.util.UUID;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 
-import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.ChatColor;
-import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 
 import com.programmerdan.minecraft.simpleadminhacks.SimpleAdminHacks;
 import com.programmerdan.minecraft.simpleadminhacks.SimpleHackConfig;
@@ -34,9 +34,25 @@ public class GameTuningConfig extends SimpleHackConfig {
 
 	private boolean oneToOneNether;
 	private boolean returnNetherPortal;
+	private boolean allowNetherTravel;
 
 	private boolean chestedMinecartInventories;
 	private boolean hopperMinecartInventories;
+	private boolean enderChestInventories;
+
+	private boolean stopTrapHorses;
+	private boolean killTrapHorses;
+
+	private boolean changeSpawnerType;
+
+	private boolean allowVillagerTrading;
+
+	private boolean enderGrief;
+	private boolean witherGrief;
+
+	private boolean preventFallingThroughBedrock;
+
+	private Set<Material> noPlace;
 
 	public GameTuningConfig(SimpleAdminHacks plugin, ConfigurationSection base) {
 		super(plugin, base);
@@ -56,12 +72,49 @@ public class GameTuningConfig extends SimpleHackConfig {
 		this.returnNetherPortal = config.getBoolean("returnNetherPortal", true);
 		if (!returnNetherPortal) plugin().log("Return Nether Portals disabled.");
 
+		this.allowNetherTravel = config.getBoolean("allowNetherTravel", false);
+		if (!allowNetherTravel) plugin().log("Nether travel disabled.");
+
 		this.chestedMinecartInventories = config.getBoolean("chestedMinecartInventories", true);
 		if (!chestedMinecartInventories) plugin().log("Chested Minecart Inventories are disabled.");
 
 		this.hopperMinecartInventories = config.getBoolean("hopperMinecartInventories", true);
 		if (!hopperMinecartInventories) plugin().log("Hopper Minecart Inventories are disabled.");
 
+		this.enderChestInventories = config.getBoolean("enderChestInventories", false);
+		if (!enderChestInventories) plugin().log("Ender chest inventories are disabled.");
+
+		this.stopTrapHorses = config.getBoolean("stopTrapHorses", true);
+		if (stopTrapHorses) plugin().log("Stopping trap horses from being annoying.");
+
+		this.killTrapHorses = config.getBoolean("killTrapHorses", true);
+		if (killTrapHorses) plugin().log("Killing trap horses as well");
+
+		this.changeSpawnerType = config.getBoolean("changeSpawnerType", false);
+		if (!changeSpawnerType) plugin().log("Spawner type changing disabled");
+
+		this.allowVillagerTrading = config.getBoolean("allowVillagerTrading", false);
+		if (!allowVillagerTrading) plugin().log("Villager trading disabled");
+
+		this.enderGrief = config.getBoolean("enderGrief", false);
+		if (!enderGrief) plugin().log("Ender grief is disabled.");
+
+		this.witherGrief = config.getBoolean("witherGrief", false);
+		if (!witherGrief) plugin().log("Wither grief is disabled.");
+
+		this.preventFallingThroughBedrock = config.getBoolean("preventFallingThroughBedrock", true);
+
+		noPlace = new HashSet<Material>();
+		if(config.isList("noplace")) {
+			for(String entry : config.getStringList("noplace")) {
+				try {
+					noPlace.add(Material.valueOf(entry));
+				}
+				catch (IllegalArgumentException e) {
+					plugin().log(Level.WARNING, "Material " + entry + " at " + config.getCurrentPath() + " could not be parsed");
+				}
+			}
+		}
 		/* Add additional tuning config grabs here. */
 	}
 
@@ -132,7 +185,6 @@ public class GameTuningConfig extends SimpleHackConfig {
 				config.getString("spawnSetMessage", ChatColor.GRAY + "Your spawn has been set."));
 	}
 
-
 	/**
 	 * @return true / false if chunk limits are on
 	 */
@@ -197,12 +249,52 @@ public class GameTuningConfig extends SimpleHackConfig {
 		return returnNetherPortal;
 	}
 
+	public boolean allowNetherTravel() {
+		return allowNetherTravel;
+	}
+
 	public boolean isChestedMinecartInventories() {
 		return chestedMinecartInventories;
 	}
 
 	public boolean isHopperMinecartInventories() {
 		return hopperMinecartInventories;
+	}
+
+	public boolean isEnderChestInventories() {
+		return enderChestInventories;
+	}
+
+	public boolean stopTrapHorses() {
+		return stopTrapHorses;
+	}
+
+	public boolean killTrapHorses() {
+		return killTrapHorses;
+	}
+
+	public boolean canChangeSpawnerType() {
+		return changeSpawnerType;
+	}
+
+	public boolean allowVillagerTrading() {
+		return allowVillagerTrading;
+	}
+
+	public boolean isEnderGrief() {
+		return enderGrief;
+	}
+
+	public boolean isWitherGrief() {
+		return witherGrief;
+	}
+
+	public boolean isPreventFallingThroughBedrock() {
+		return preventFallingThroughBedrock;
+	}
+
+	public boolean canPlace(Material mat) {
+		return !noPlace.contains(mat);
 	}
 
 }

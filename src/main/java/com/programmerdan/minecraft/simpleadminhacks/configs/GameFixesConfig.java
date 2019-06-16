@@ -1,14 +1,14 @@
 package com.programmerdan.minecraft.simpleadminhacks.configs;
 
+import java.util.ArrayList;
+import java.util.logging.Level;
+
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 
 import com.programmerdan.minecraft.simpleadminhacks.SimpleAdminHacks;
 import com.programmerdan.minecraft.simpleadminhacks.SimpleHackConfig;
-
-import java.util.ArrayList;
-import java.util.logging.Level;
 
 public class GameFixesConfig extends SimpleHackConfig {
 
@@ -19,10 +19,18 @@ public class GameFixesConfig extends SimpleHackConfig {
 	private boolean stopRailDupe;
 	private boolean stopEndPortalDeletion;
 	private boolean stopBedBombing;
-	
+
 	private ArrayList<BlockFace> bfArray;
 	private ArrayList<Material> railArray;
 	private ArrayList<Material> pistonArray;
+
+	private boolean preventTreeWrap;
+	private boolean maintainFlatBedrock;
+	private boolean fixPearlGlitch;
+	private boolean preventLongSigns;
+	private int signLengthLimit;
+	private boolean preventLongSignsAbsolute;
+	private boolean cancelLongSignEvent;
 
 	public GameFixesConfig(SimpleAdminHacks plugin, ConfigurationSection base) {
 		super(plugin, base);
@@ -33,10 +41,10 @@ public class GameFixesConfig extends SimpleHackConfig {
 		blockElytraBreakBug = config.getBoolean("blockElytraBreakBug", true);
 		damageOnElytraBreakBug = config.getDouble("damageOnElytraBreakBug", 0.0d);
 		if (blockElytraBreakBug) plugin().log(Level.INFO, "  Block Elytra 1height break bug is enabled, doing {} damage to violators", damageOnElytraBreakBug);
-		
+
 		canStorageTeleport = config.getBoolean("canStorageTeleport");
 		if (!canStorageTeleport) plugin().log("  Storage holder teleportation is disabled.");
-		
+
 		stopHopperDupe = config.getBoolean("stopHopperDupe");
 		if (stopHopperDupe) plugin().log("  Stop Hopper self-feeding Dupe is enabled.");
 
@@ -45,9 +53,23 @@ public class GameFixesConfig extends SimpleHackConfig {
 
 		stopEndPortalDeletion = config.getBoolean("stopEndPortalDeletion", true);
 		if (stopEndPortalDeletion) plugin().log("  Stop End Portal Deletion is enabled.");
-		
+
 		stopBedBombing = config.getBoolean("stopBedBombingInHellBiomes", true);
 		if (stopBedBombing) plugin().log("  Stop Bed Bombing In Hell Biomes is enabled.");
+
+		preventTreeWrap = config.getBoolean("preventTreeWraparound", true);
+		if (preventTreeWrap) plugin().log("  Stop tree wrapping into bedrock is enabled.");
+
+		maintainFlatBedrock = config.getBoolean("maintainFlatBedrock", false);
+		if (maintainFlatBedrock) plugin().log("  Maintaining bedrock flatness.");
+
+		fixPearlGlitch = config.getBoolean("fixPearlGlitch", false);
+		if (fixPearlGlitch) plugin().log("  Pearl glitch fix enabled.");
+
+		preventLongSigns = config.getBoolean("preventLongSigns", true);
+		signLengthLimit = config.getInt("signLengthLimit", 100);
+		preventLongSignsAbsolute = config.getBoolean("preventLongSignsAbsolute", true);
+		cancelLongSignEvent = config.getBoolean("cancelLongSignEvent", false);
 	}
 
 	private void wireUpArrays() {
@@ -109,8 +131,37 @@ public class GameFixesConfig extends SimpleHackConfig {
 	public ArrayList<Material> getPistonArray() {
 		return pistonArray;
 	}
-	
+
 	public boolean stopBedBombing() {
 		return this.stopBedBombing;
 	}
+
+	public boolean stopTreeWraparound() {
+		return preventTreeWrap;
+	}
+
+	public boolean maintainFlatBedrock() {
+		return maintainFlatBedrock;
+	}
+
+	public boolean fixPearlGlitch() {
+		return fixPearlGlitch;
+	}
+
+	public boolean isPreventLongSigns() {
+		return preventLongSigns;
+	}
+
+	public int getSignLengthLimit() {
+		return signLengthLimit;
+	}
+
+	public boolean isPreventLongSignsAbsolute() {
+		return preventLongSignsAbsolute;
+	}
+
+	public boolean isCancelLongSignEvent() {
+		return cancelLongSignEvent;
+	}
+
 }
