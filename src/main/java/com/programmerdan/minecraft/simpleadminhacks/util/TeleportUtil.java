@@ -20,7 +20,7 @@ public class TeleportUtil {
 			return false;
 		}
 		final Block above = block.getRelative(BlockFace.UP);
-		if (above.getType().isSolid()) {
+		if (above.getType().isSolid() || above.getType() == Material.SIGN) {
 			return false;
 		}
 		return true;
