@@ -1,13 +1,6 @@
 package com.programmerdan.minecraft.simpleadminhacks;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -17,13 +10,10 @@ import org.bukkit.World;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import com.google.common.reflect.ClassPath;
 
 /**
  * Wrapper for simple admin hacks, each doing a thing and each configurable.
@@ -31,9 +21,10 @@ import com.google.common.reflect.ClassPath;
  * @author ProgrammerDan
  */
 public class SimpleAdminHacks extends JavaPlugin {
+	
 	private static SimpleAdminHacks plugin;
 	private SimpleAdminHacksConfig config;
-	private List<SimpleHack<?>> hacks;
+	private HackManager hackManager;
 
 	/**
 	 * No-op constructor
@@ -47,7 +38,6 @@ public class SimpleAdminHacks extends JavaPlugin {
 	 */
 	public void onEnable() {
 		SimpleAdminHacks.plugin = this;
-		this.hacks = new LinkedList<SimpleHack<?>>();
 
 		// Config bootstrap
 		this.saveDefaultConfig();
@@ -60,137 +50,19 @@ public class SimpleAdminHacks extends JavaPlugin {
 			this.setEnabled(false);
 			return;
 		}
-
-
-		// Now load all the Hacks and register.
-		ConfigurationSection hackConfigs = this.getConfig().getConfigurationSection("hacks");
-		try {
-			ClassPath getSamplersPath = ClassPath.from(this.getClassLoader());
-
-			for (ClassPath.ClassInfo clsInfo : getSamplersPath.getTopLevelClasses("com.programmerdan.minecraft.simpleadminhacks.hacks")) {
-				try {
-					Class<?> clazz = clsInfo.load();
-					if (clazz != null && SimpleHack.class.isAssignableFrom(clazz)) {
-						log(Level.INFO, "Found a hack class {0}, attempting to find a generating method and constructor", clazz.getName());
-						ConfigurationSection hackConfig = hackConfigs.getConfigurationSection(clazz.getSimpleName());
-						SimpleHackConfig hackingConfig = null;
-						if (hackConfig != null) {
-							try {
-								Method genBasic = clazz.getMethod("generate", SimpleAdminHacks.class, ConfigurationSection.class);
-								hackingConfig = (SimpleHackConfig) genBasic.invoke(null, this, hackConfig);
-							} catch (IllegalAccessException failure) {
-								log(Level.WARNING, "Creating configuration for hack {0} failed, illegal access failure", clazz.getName());
-							} catch (IllegalArgumentException failure) {
-								log(Level.WARNING, "Creating configuration for hack {0} failed, illegal argument failure", clazz.getName());
-							} catch (InvocationTargetException failure) {
-								log(Level.WARNING, "Creating configuration for hack {0} failed, invocation target failure", clazz.getName());
-							}
-						} else {
-							log(Level.INFO, "Hack for {0} found but no configuration, skipping.", clazz.getSimpleName());
-						}
-
-						if (hackingConfig != null) {
-							log(Level.INFO, "Configuration for Hack {0} found, instance: {1}", clazz.getSimpleName(), hackingConfig.toString());
-							SimpleHack<?> hack = null;
-							try {
-								Constructor<?> constructBasic = clazz.getConstructor(SimpleAdminHacks.class, hackingConfig.getClass());
-								hack = (SimpleHack<?>) constructBasic.newInstance(this, hackingConfig);
-								log(Level.INFO, "Created a new Hack of type {0}", clazz.getSimpleName());
-							} catch (InvalidConfigException ice) {
-								log(Level.WARNING, "Failed to activate {0} hack, configuration failed", clazz.getSimpleName());
-							} catch (Exception e) {
-								log(Level.WARNING, "Failed to activate {0} hack, configuration failed: {1}", clazz.getSimpleName(), e.getMessage());
-							}
-
-							if (hack == null) {
-								log(Level.WARNING, "Failed to create a Hack of type {0}", clazz.getSimpleName());
-							} else {
-								register(hack);
-								log(Level.INFO, "Registered a new hack: {0}", clazz.getSimpleName());
-							}
-						} else {
-							log(Level.INFO, "Configuration generation for Hack {0} failed, skipping.", clazz.getSimpleName());
-						}
-					}
-				} catch (NoClassDefFoundError e) {
-					log(Level.INFO, "Unable to load discovered class {0} due to dependency failure", clsInfo.getName());
-				} catch (Exception e) {
-					log(Level.WARNING, "Failed to complete hack discovery {0}", clsInfo.getName());
-				}
-			}
-		} catch (Exception e) {
-			log(Level.WARNING, "Failed to complete hack registration");
-		}
-
-
-		// Warning if no hacks.
-		if (hacks == null || hacks.size() == 0) {
-			log(Level.WARNING, "No hacks enabled.");
-			return;
-		}
-
-		// Boot up the hacks.
-		List<SimpleHack<?>> iterList = new ArrayList<SimpleHack<?>>(hacks);
-		for (SimpleHack<?> hack : iterList) {
-			try {
-				hack.enable();
-			} catch (NoClassDefFoundError err) {
-				log(Level.WARNING, "Unable to activate hack {0}, missing dependency: {1}", hack.getName(), err.getMessage());
-				unregister(hack);
-			} catch (Exception e) {
-				log(Level.WARNING, "Unable to activate hack {0}, unrecognized error: {1}", hack.getName(), e.getMessage());
-				log(Level.WARNING, "Full stack trace: ", e);
-				unregister(hack);
-			}
-		}
-
+		this.hackManager = new HackManager(this);
 		this.registerCommand("hacks", new CommandListener(this));
 	}
 
 	/**
 	 * Forwards disable to hacks, clears instance and static variables
 	 */
+	@Override
 	public void onDisable() {
-		if (hacks == null) return;
-		for (SimpleHack<?> hack : hacks) {
-			try {
-				hack.disable();
-			} catch (NoClassDefFoundError err) {
-				log(Level.WARNING, "Unable to cleanly disable hack {0}, missing dependency: {1}", hack.getName(), err.getMessage());
-			} catch (Exception e) {
-				log(Level.WARNING, "Unable to cleanly disable hack {0}, unrecognized error: {1}", hack.getName(), e.getMessage());
-				log(Level.WARNING, "Full stack trace: ", e);
-			}
-		}
-		hacks.clear();
-		hacks = null;
+		hackManager.disableAllHacks();
+		hackManager = null;
 		config = null;
 		SimpleAdminHacks.plugin = null;
-	}
-
-	/**
-	 * Registers a new SimpleHack.
-	 */
-	public void register(SimpleHack<?> hack) {
-		if (hacks != null) {
-			hacks.add(hack);
-		}
-	}
-
-	/**
-	 * Unregisters an existing SimpleHack.
-	 */
-	public void unregister(SimpleHack<?> hack) {
-		if (hacks != null) {
-			hacks.remove(hack);
-		}
-	}
-
-	/**
-	 * Returns a wrapped version of hacks preventing external removal but allowing interaction with the hacks.
-	 */
-	public List<SimpleHack<?>> getHacks() {
-		return Collections.unmodifiableList(hacks);
 	}
 
 	/**
@@ -355,6 +227,13 @@ public class SimpleAdminHacks extends JavaPlugin {
 	 */
 	public ClassLoader exposeClassLoader() {
 		return this.getClassLoader();
+	}
+	
+	/**
+	 * @return Manager holding hack instances
+	 */
+	public HackManager getHackManager() {
+		return hackManager;
 	}
 
 }
